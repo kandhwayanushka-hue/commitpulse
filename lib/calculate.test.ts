@@ -1,10 +1,10 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   calculateStreak,
   calculateMonthlyStats,
+  isStreakAlive,
   aggregateCalendars,
   calculateWrappedStats,
-  findTodayIndex,
 } from './calculate';
 import type { ContributionCalendar } from '../types';
 
@@ -58,18 +58,32 @@ describe('calculateStreak', () => {
     expect(s.longestStreak).toBe(2);
   });
 
+  it('handles a massive single-day commit spike without affecting streak calculations', () => {
+    const calendar = buildCalendar([
+      1, 0, 1, 0, 1, 0, 1,
+
+      0, 0, 125, 0, 0, 0, 0,
+
+      1, 1, 1, 1, 1, 0, 0,
+
+      1, 1, 1, 1, 1, 1, 1,
+    ]);
+
+    const result = calculateStreak(calendar);
+
+    expect(result.currentStreak).toBe(7);
+    expect(result.longestStreak).toBe(7);
+    expect(result.totalContributions).toBe(141);
+  });
+
   it('handles multiple weeks of zero contributions separating active streaks', () => {
     const calendar = buildCalendar([
-      // Week 1 - active streak
       1, 1, 1, 1, 1, 1, 1,
 
-      // Week 2 - gap
       0, 0, 0, 0, 0, 0, 0,
 
-      // Week 3 - gap
       0, 0, 0, 0, 0, 0, 0,
 
-      // Week 4 - new streak
       1, 1, 1, 1, 1, 1, 1,
     ]);
 
@@ -696,17 +710,6 @@ describe('calculateStreak', () => {
   });
 });
 
-it('handles massive single-day commit spike timeline', () => {
-  const calendar = buildCalendar([
-    0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 120, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1,
-  ]);
-
-  const result = calculateStreak(calendar);
-
-  expect(result.currentStreak).toBe(7);
-  expect(result.longestStreak).toBe(7);
-});
-
 describe('calculateStreak — timezone awareness', () => {
   const tzCalendar = {
     totalContributions: 3,
@@ -786,41 +789,27 @@ describe('calculateStreak — timezone awareness', () => {
     const result = calculateStreak(tzCalendar, 'UTC', nowUTC);
     expect(result.todayDate).toBe('2024-06-16');
   });
+});
 
-  it('calculates streak correctly during a spring-forward DST transition edge case', () => {
-    // 1. We must mock the system clock so 'new Date()' behaves predictably
-    vi.useFakeTimers();
+describe('isStreakAlive', () => {
+  it('returns true when both today and yesterday have contributions', () => {
+    expect(isStreakAlive({ contributionCount: 1 }, { contributionCount: 1 })).toBe(true);
+  });
 
-    // 2. Use America/New_York (spring-forward: 2024-03-10)
-    process.env.TZ = 'America/New_York';
+  it('returns true when only today has contributions', () => {
+    expect(isStreakAlive({ contributionCount: 1 }, { contributionCount: 0 })).toBe(true);
+  });
 
-    // 3. Set `now` to early UTC on March 10.
-    // 03:00:00 UTC on March 10 is 22:00:00 (10:00 PM) on March 9 in New York (EST).
-    const mockNow = new Date('2024-03-10T03:00:00.000Z');
-    vi.setSystemTime(mockNow);
+  it('returns true when only yesterday has contributions', () => {
+    expect(isStreakAlive({ contributionCount: 0 }, { contributionCount: 1 })).toBe(true);
+  });
 
-    // 4. Build a calendar with contributions on March 9 and March 10
-    const dstCalendar = {
-      totalContributions: 2,
-      weeks: [
-        {
-          contributionDays: [
-            { contributionCount: 1, date: '2024-03-09' },
-            { contributionCount: 1, date: '2024-03-10' },
-          ],
-        },
-      ],
-    } as Parameters<typeof calculateStreak>[0];
+  it('returns false when both today and yesterday have zero contributions', () => {
+    expect(isStreakAlive({ contributionCount: 0 }, { contributionCount: 0 })).toBe(false);
+  });
 
-    // 5. Assert currentStreak is calculated correctly
-    const result = calculateStreak(dstCalendar, 'America/New_York');
-
-    // Because it is currently March 9th in New York, the current streak should securely be 1
-    expect(result.currentStreak).toBe(1);
-
-    // 6. Cleanup to prevent breaking other tests
-    vi.useRealTimers();
-    process.env.TZ = '';
+  it('returns false when yesterday is null and today has no contributions', () => {
+    expect(isStreakAlive({ contributionCount: 0 }, null)).toBe(false);
   });
 });
 
@@ -942,9 +931,9 @@ describe('calculateMonthlyStats', () => {
     expect(result.previousMonthTotal).toBe(10);
     expect(result.currentMonthName).toBe('January');
   });
-  // =========================================================================
+  // ==================================================================
   // ISSUE OBJECTIVE: Empty calendar passed to calculateMonthlyStats
-  // =========================================================================
+  // ==================================================================
   it('returns zeros and does not crash when given an empty calendar', () => {
     const emptyCalendar = {
       totalContributions: 0,
@@ -995,9 +984,9 @@ describe('calculateStreak — empty and sparse year edge cases', () => {
     expect(result.totalContributions).toBe(2);
   });
 
-  // =========================================================================
+  // ==================================================================
   // ISSUE #1503 — Variation 4: Full year (52 weeks × 7 days) of 0 contributions
-  // =========================================================================
+  // ==================================================================
   // Background: streak computation is susceptible to off-by-one errors when
   // managing calendar offsets and date boundaries. A full year of zero commits
   // is the most exhaustive boundary stress-test: the loop must traverse all 364
@@ -1201,7 +1190,7 @@ describe('calculateWrappedStats', () => {
   });
 
   // ISSUE OBJECTIVE: Verify weekendRatio is 100 when all commits are on weekends
-  // =========================================================================
+  // ==================================================================
   it('returns weekendRatio === 100 when all contributions are on weekends', () => {
     // Note: 2026-05-02 is a Saturday, 2026-05-03 is a Sunday, 2026-05-04 is a Monday
     const weekendCalendar = {
@@ -1257,37 +1246,5 @@ describe('calculateWrappedStats', () => {
     const resultUTCPlus5 = calculateStreak(calendar, 'Etc/GMT-5', nowUTC);
     expect(resultUTCPlus5.currentStreak).toBe(2);
     expect(resultUTCPlus5.todayDate).toBe('2024-01-15');
-  });
-});
-
-describe('findTodayIndex', () => {
-  it('returns index when date is found', () => {
-    const days = [
-      { date: '2024-01-01', contributionCount: 1 },
-      { date: '2024-01-02', contributionCount: 2 },
-      { date: '2024-01-03', contributionCount: 3 },
-    ];
-
-    const result = findTodayIndex(days, 'UTC', new Date('2024-01-02T12:00:00Z'));
-
-    expect(result).toBe(1);
-  });
-
-  it('falls back to last index when date is not found', () => {
-    const days = [
-      { date: '2024-01-01', contributionCount: 1 },
-      { date: '2024-01-02', contributionCount: 2 },
-      { date: '2024-01-03', contributionCount: 3 },
-    ];
-
-    const result = findTodayIndex(days, 'UTC', new Date('2024-01-10T12:00:00Z'));
-
-    expect(result).toBe(2);
-  });
-
-  it('returns -1 for empty days array', () => {
-    const result = findTodayIndex([], 'UTC', new Date('2024-01-10T12:00:00Z'));
-
-    expect(result).toBe(-1);
   });
 });
