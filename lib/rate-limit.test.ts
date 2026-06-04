@@ -1,49 +1,51 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { rateLimit } from './rate-limit';
 import { RateLimiter } from './rate-limit';
 
-describe('rateLimit', () => {
+describe('middlewareRateLimiter', () => {
   beforeEach(() => {
     vi.useFakeTimers();
   });
 
   it('allows requests within the limit', async () => {
+    const limiter = new RateLimiter(60, 60000);
     const ip = '1.2.3.4';
     for (let i = 0; i < 60; i++) {
-      const result = await rateLimit(ip, 60, 60000);
+      const result = await limiter.checkWithResult(ip);
       expect(result.success).toBe(true);
       expect(result.remaining).toBe(60 - (i + 1));
     }
   });
 
   it('blocks requests exceeding the limit', async () => {
+    const limiter = new RateLimiter(60, 60000);
     const ip = '2.3.4.5';
     // Consume 60 requests
     for (let i = 0; i < 60; i++) {
-      await rateLimit(ip, 60, 60000);
+      await limiter.checkWithResult(ip);
     }
 
     // 61st request should fail
-    const result = await rateLimit(ip, 60, 60000);
+    const result = await limiter.checkWithResult(ip);
     expect(result.success).toBe(false);
     expect(result.remaining).toBe(0);
   });
 
   it('resets after the window expires', async () => {
+    const limiter = new RateLimiter(60, 60000);
     const ip = '3.4.5.6';
     const windowMs = 60000;
 
     // Consume all requests
     for (let i = 0; i < 60; i++) {
-      await rateLimit(ip, 60, windowMs);
+      await limiter.checkWithResult(ip);
     }
 
-    expect((await rateLimit(ip, 60, windowMs)).success).toBe(false);
+    expect((await limiter.checkWithResult(ip)).success).toBe(false);
 
     // Fast-forward time
     vi.advanceTimersByTime(windowMs + 1);
 
-    const result = await rateLimit(ip, 60, windowMs);
+    const result = await limiter.checkWithResult(ip);
     expect(result.success).toBe(true);
     expect(result.remaining).toBe(59);
   });
@@ -52,20 +54,21 @@ describe('rateLimit', () => {
     const ip = '4.5.6.7';
     const windowMs = 60000;
     const limit = 5;
+    const limiter = new RateLimiter(limit, windowMs);
 
     // Make 3 requests spread across the window
-    await rateLimit(ip, limit, windowMs);
+    await limiter.checkWithResult(ip);
     vi.advanceTimersByTime(20000);
-    await rateLimit(ip, limit, windowMs);
+    await limiter.checkWithResult(ip);
     vi.advanceTimersByTime(20000);
-    await rateLimit(ip, limit, windowMs);
+    await limiter.checkWithResult(ip);
 
     // Advance past original window start (60s from first request)
     // If TTL was resetting, the window would still be open; it should now be closed
     vi.advanceTimersByTime(21000); // total: 61s from first request
 
     // Window should have expired — count resets
-    const result = await rateLimit(ip, limit, windowMs);
+    const result = await limiter.checkWithResult(ip);
     expect(result.success).toBe(true);
     expect(result.remaining).toBe(limit - 1);
   });
@@ -74,37 +77,39 @@ describe('rateLimit', () => {
     const ip = '7.7.7.7';
     const windowMs = 60000;
     const limit = 3;
+    const limiter = new RateLimiter(limit, windowMs);
 
     vi.setSystemTime(0);
-    await rateLimit(ip, limit, windowMs);
+    await limiter.checkWithResult(ip);
     vi.advanceTimersByTime(20000);
-    await rateLimit(ip, limit, windowMs);
+    await limiter.checkWithResult(ip);
     vi.advanceTimersByTime(20000);
-    await rateLimit(ip, limit, windowMs);
+    await limiter.checkWithResult(ip);
 
     // Still within the same fixed window, before the boundary
     vi.advanceTimersByTime(19999);
-    expect((await rateLimit(ip, limit, windowMs)).success).toBe(false);
+    expect((await limiter.checkWithResult(ip)).success).toBe(false);
 
     // Move just past the window limit. The old entry should have expired.
     vi.advanceTimersByTime(2);
 
-    const result = await rateLimit(ip, limit, windowMs);
+    const result = await limiter.checkWithResult(ip);
     expect(result.success).toBe(true);
     expect(result.remaining).toBe(limit - 1);
   });
 
   it('tracks different IPs separately', async () => {
+    const limiter = new RateLimiter(60, 60000);
     const ip1 = '11.11.11.11';
     const ip2 = '22.22.22.22';
 
     // Consume all requests for ip1
     for (let i = 0; i < 60; i++) {
-      await rateLimit(ip1, 60, 60000);
+      await limiter.checkWithResult(ip1);
     }
 
-    expect((await rateLimit(ip1, 60, 60000)).success).toBe(false);
-    expect((await rateLimit(ip2, 60, 60000)).success).toBe(true);
+    expect((await limiter.checkWithResult(ip1)).success).toBe(false);
+    expect((await limiter.checkWithResult(ip2)).success).toBe(true);
   });
 });
 
@@ -113,43 +118,45 @@ it('keys expire exactly at the window limit with sliding time advances', async (
   const ip = '9.9.9.9';
   const windowMs = 1000;
   const limit = 5;
+  const limiter = new RateLimiter(limit, windowMs);
 
   // First request: creates the tracker with 1s TTL
-  let res = await rateLimit(ip, limit, windowMs);
+  let res = await limiter.checkWithResult(ip);
   expect(res.success).toBe(true);
   expect(res.remaining).toBe(limit - 1);
 
   // Advance half the window and make another request
   vi.advanceTimersByTime(500);
-  res = await rateLimit(ip, limit, windowMs);
+  res = await limiter.checkWithResult(ip);
   expect(res.success).toBe(true);
 
   // Advance to exactly the original window boundary (total = 1000ms)
   vi.advanceTimersByTime(500);
 
   // At the exact boundary the entry should still be considered valid
-  res = await rateLimit(ip, limit, windowMs);
+  res = await limiter.checkWithResult(ip);
   expect(res.success).toBe(true);
 
   // Move just past the window expiry
   vi.advanceTimersByTime(1);
 
   // Now the key must have expired and a fresh window starts
-  res = await rateLimit(ip, limit, windowMs);
+  res = await limiter.checkWithResult(ip);
   expect(res.success).toBe(true);
   expect(res.remaining).toBe(limit - 1);
 });
 
 it('allows requests after many expired IP entries', async () => {
   const windowMs = 1000;
+  const limiter = new RateLimiter(60, windowMs, 2000);
 
   for (let i = 0; i < 2001; i++) {
-    await rateLimit(`192.168.1.${i}`, 60, windowMs);
+    await limiter.checkWithResult(`192.168.1.${i}`);
   }
 
   vi.advanceTimersByTime(windowMs + 1);
 
-  const result = await rateLimit('10.0.0.1', 60, windowMs);
+  const result = await limiter.checkWithResult('10.0.0.1');
 
   expect(result.success).toBe(true);
 });

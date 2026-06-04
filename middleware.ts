@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { rateLimit } from './lib/rate-limit';
+import { middlewareRateLimiter } from './lib/rate-limit';
 import { getClientIp } from './utils/getClientIp';
 
 /**
@@ -25,7 +25,7 @@ export async function middleware(request: NextRequest) {
 
   // Apply rate limiting
   // 60 requests per 60,000ms (1 minute)
-  const result = await rateLimit(ip, 60, 60000);
+  const result = await middlewareRateLimiter.checkWithResult(ip);
 
   if (!result.success) {
     return NextResponse.json(

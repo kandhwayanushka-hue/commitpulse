@@ -27,10 +27,10 @@ export class RateLimiter {
    * @param limit - Maximum number of requests allowed per window. Defaults to 5.
    * @param windowMs - Time window in milliseconds. Defaults to 60000 (1 minute).
    */
-  constructor(limit = 5, windowMs = 60000) {
+  constructor(limit = 5, windowMs = 60000, maxSize = 10000) {
     this.limit = limit;
     this.windowMs = windowMs;
-    this.cache = new DistributedCache<{ count: number; resetAt: number }>(10000, windowMs);
+    this.cache = new DistributedCache<{ count: number; resetAt: number }>(maxSize, windowMs);
   }
 
   /**
@@ -166,65 +166,5 @@ export const trackUserRateLimiter = new RateLimiter(5, 60000);
 // Global instance for notify endpoint (5 requests per IP per minute)
 export const notifyRateLimiter = new RateLimiter(5, 60000);
 
-/**
- * Distributed rate limiter for Next.js Edge Middleware.
- *
- * When Upstash Redis / Vercel KV is configured, counters are shared across
- * all serverless instances via atomic INCR + EXPIRE Lua scripts.
- * Falls back to a local in-memory cache for development environments.
- */
-
-const trackers = new DistributedCache<{ count: number; resetAt: number }>(2000, 60000);
-
-/**
- * Checks if a request from a given IP should be rate limited.
- *
- * @param ip - The IP address to track.
- * @param limit - Maximum number of requests allowed in the window. Defaults to 60.
- * @param windowMs - Time window in milliseconds. Defaults to 60000 (1 minute).
- * @returns A {@link RateLimitResult} containing success status, limit, remaining count, and reset time.
- *
- * @example
- * const result = rateLimit(ip);
- * if (!result.success) {
- *   return new Response("Too Many Requests", { status: 429 });
- * }
- */
-export async function rateLimit(
-  ip: string,
-  limit: number = 60,
-  windowMs: number = 60000
-): Promise<RateLimitResult> {
-  const now = Date.now();
-  const tracker = await trackers.get(ip);
-
-  if (!tracker) {
-    const resetAt = now + windowMs;
-    await trackers.set(ip, { count: 1, resetAt }, windowMs);
-    return {
-      success: true,
-      limit,
-      remaining: limit - 1,
-      reset: resetAt,
-    };
-  }
-
-  tracker.count++;
-  await trackers.update(ip, tracker);
-
-  if (tracker.count > limit) {
-    return {
-      success: false,
-      limit,
-      remaining: 0,
-      reset: tracker.resetAt,
-    };
-  }
-
-  return {
-    success: true,
-    limit,
-    remaining: limit - tracker.count,
-    reset: tracker.resetAt,
-  };
-}
+// Global instance for Edge Middleware (60 requests per IP per minute, bounded cache)
+export const middlewareRateLimiter = new RateLimiter(60, 60000, 2000);
