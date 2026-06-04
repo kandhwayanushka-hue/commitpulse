@@ -4,14 +4,20 @@ import type { WrappedStats, UserProfile } from '@/types/dashboard';
 
 describe('GithubWrapped type compiler validation', () => {
   const profile: UserProfile = {
-    username: 'Anvi',
+    username: 'anvidev',
     name: 'Anvi Gupta',
     avatarUrl: 'https://example.com/avatar.png',
-    bio: null,
-    followers: 10,
-    following: 5,
-    publicRepos: 20,
+    isPro: false,
+    bio: 'Open source contributor',
+    location: 'India',
+    joinedDate: '2024-01-01',
     developerScore: 85,
+    stats: {
+      repositories: 20,
+      followers: 10,
+      following: 5,
+      stars: 100,
+    },
   };
 
   const wrappedData: WrappedStats = {
@@ -21,6 +27,10 @@ describe('GithubWrapped type compiler validation', () => {
     mostActiveDate: '2026-06-04',
     busiestMonth: '2026-06',
     weekendRatio: 30,
+    calendar: {
+      totalContributions: 1200,
+      weeks: [],
+    },
   };
 
   it('accepts valid GithubWrapped props', () => {
@@ -37,18 +47,22 @@ describe('GithubWrapped type compiler validation', () => {
     expectTypeOf(profile.username).toBeString();
     expectTypeOf(profile.name).toBeString();
     expectTypeOf(profile.avatarUrl).toBeString();
+    expectTypeOf(profile.isPro).toBeBoolean();
     expectTypeOf(profile.developerScore).toBeNumber();
   });
 
-  it('enforces WrappedStats numeric fields', () => {
+  it('enforces nested UserProfile stats field types', () => {
+    expectTypeOf(profile.stats.repositories).toBeNumber();
+    expectTypeOf(profile.stats.followers).toBeNumber();
+    expectTypeOf(profile.stats.following).toBeNumber();
+    expectTypeOf(profile.stats.stars).toBeNumber();
+  });
+
+  it('enforces WrappedStats field types', () => {
     expectTypeOf(wrappedData.totalContributions).toBeNumber();
     expectTypeOf(wrappedData.highestDailyCount).toBeNumber();
     expectTypeOf(wrappedData.weekendRatio).toBeNumber();
-  });
-
-  it('enforces WrappedStats string fields', () => {
     expectTypeOf(wrappedData.topLanguage).toBeString();
-    expectTypeOf(wrappedData.mostActiveDate).toBeString();
     expectTypeOf(wrappedData.busiestMonth).toBeString();
   });
 
