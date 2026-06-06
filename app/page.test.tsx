@@ -206,6 +206,12 @@ describe('LandingPage', () => {
     mockRecentSearches.clearSearches = vi.fn();
     mockRecentSearches.removeSearch = vi.fn();
 
+    Object.defineProperty(window, 'isSecureContext', {
+      value: true,
+      configurable: true,
+    });
+
+    // Mock navigator.clipboard
     Object.assign(navigator, {
       clipboard: {
         writeText: vi.fn().mockResolvedValue(undefined),

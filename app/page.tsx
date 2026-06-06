@@ -1,5 +1,6 @@
 'use client';
 import Image from 'next/image';
+import { fallbackCopyToClipboard } from '@/utils/clipboard';
 import { trackUser } from '@/utils/tracking';
 
 import Link from 'next/link';
@@ -452,23 +453,40 @@ export default function LandingPage() {
     clearCopyTimers();
 
     try {
-      await navigator.clipboard.writeText(markdown);
+      if (navigator.clipboard && window.isSecureContext) {
+        try {
+          await navigator.clipboard.writeText(markdown);
+        } catch {
+          const copiedSuccessfully = fallbackCopyToClipboard(markdown);
+
+          if (!copiedSuccessfully) {
+            throw new Error('Clipboard copy failed');
+          }
+        }
+      } else {
+        const copiedSuccessfully = fallbackCopyToClipboard(markdown);
+
+        if (!copiedSuccessfully) {
+          throw new Error('Clipboard copy failed');
+        }
+      }
+
+      trackUser(trimmedUsername);
+      addSearch(trimmedUsername);
+
+      setCopied(true);
+
+      setTimeout(() => {
+        guideRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      }, 80);
+
+      setTimeout(() => setCopied(false), 3000);
     } catch {
       setCopied(false);
-      return;
     }
-
-    trackUser(trimmedUsername);
-    addSearch(trimmedUsername);
-    setCopied(true);
-
-    scrollToGuideTimeoutRef.current = setTimeout(() => {
-      guideRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 80);
-
-    resetCopiedTimeoutRef.current = setTimeout(() => {
-      setCopied(false);
-    }, 50000);
   };
 
   const selectDemoUser = (name: string) => {
