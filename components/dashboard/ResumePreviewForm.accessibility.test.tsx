@@ -25,7 +25,7 @@ describe('ResumePreviewForm - Accessibility compliance', () => {
   const onBack = vi.fn();
   const onComplete = vi.fn();
 
-  it('checks that crucial fields have associated visible text labels', () => {
+  const renderComponent = () =>
     render(
       <ResumePreviewForm
         githubUsername="john"
@@ -36,7 +36,9 @@ describe('ResumePreviewForm - Accessibility compliance', () => {
       />
     );
 
-    // Form inputs should have associated visible text labels
+  it('checks that crucial fields have associated visible text labels', () => {
+    renderComponent();
+
     expect(screen.getByText('Full Name')).toBeInTheDocument();
     expect(screen.getByText('Email')).toBeInTheDocument();
     expect(screen.getByText('Skills')).toBeInTheDocument();
@@ -45,35 +47,39 @@ describe('ResumePreviewForm - Accessibility compliance', () => {
   });
 
   it('checks that interactive inputs have focus-visible or outline configurations', () => {
-    render(
-      <ResumePreviewForm
-        githubUsername="john"
-        parsed={parsed}
-        fileName="resume.pdf"
-        onBack={onBack}
-        onComplete={onComplete}
-      />
-    );
+    renderComponent();
 
     const nameInput = screen.getByDisplayValue('John Doe');
+
     expect(nameInput).toHaveClass('focus:ring-2');
     expect(nameInput).toHaveClass('focus:ring-emerald-500');
     expect(nameInput).toHaveClass('outline-none');
   });
 
   it('checks that the save button is disabled when saving to prevent multiple submissions', () => {
-    render(
-      <ResumePreviewForm
-        githubUsername="john"
-        parsed={parsed}
-        fileName="resume.pdf"
-        onBack={onBack}
-        onComplete={onComplete}
-      />
-    );
+    renderComponent();
 
-    // Initially not disabled
-    const saveButton = screen.getByRole('button', { name: /Save Profile/i });
+    const saveButton = screen.getByRole('button', {
+      name: /Save Profile/i,
+    });
+
     expect(saveButton).not.toBeDisabled();
+  });
+
+  it('checks that headings are present and accessible', () => {
+    renderComponent();
+
+    const headings = screen.getAllByRole('heading');
+    expect(headings.length).toBeGreaterThan(0);
+  });
+
+  it('checks keyboard accessibility for interactive elements', () => {
+    renderComponent();
+
+    const buttons = screen.getAllByRole('button');
+
+    buttons.forEach((button) => {
+      expect(button).not.toHaveAttribute('tabindex', '-1');
+    });
   });
 });
