@@ -256,8 +256,16 @@ function CustomizePageInner(): ReactElement {
         // Ensure we strictly sanitize the raw SVG markup using DOMPurify,
         // while preserving the necessary layout and structural attributes our SVG requires.
         const sanitized = DOMPurify.sanitize(text, {
-          USE_PROFILES: { svg: true },
-          ADD_TAGS: ['filter', 'feGaussianBlur', 'feMerge', 'feMergeNode', 'feComposite'],
+          USE_PROFILES: { svg: true, svgFilters: true },
+          ADD_TAGS: [
+            'animate',
+            'style',
+            'filter',
+            'feGaussianBlur',
+            'feMerge',
+            'feMergeNode',
+            'feComposite',
+          ],
           ADD_ATTR: [
             'viewBox',
             'd',

@@ -17,6 +17,7 @@ import {
   generateVersusSVG,
   generateHeatmapSVG,
   generatePulseSVG,
+  generateSkylineSVG,
   generateLanguagesSVG,
 } from '@/lib/svg/generator';
 import { generateConstellationSVG } from '@/lib/svg/constellation';
@@ -121,6 +122,7 @@ export async function GET(request: Request) {
       | 'monthly'
       | 'heatmap'
       | 'pulse'
+      | 'skyline'
       | 'languages'
       | 'constellation';
     const themeName = theme || 'dark';
@@ -452,6 +454,9 @@ export async function GET(request: Request) {
       // even though the sparkline generator will extract its own daily 30-day timeline below.
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generatePulseSVG(stats, params, calendar);
+    } else if (normalizedView === 'skyline') {
+      const stats = calculateStreak(calendar, timezone, undefined, grace);
+      svg = generateSkylineSVG(stats, params, calendar);
     } else if (normalizedView === 'constellation') {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generateConstellationSVG(stats, params, calendar);
