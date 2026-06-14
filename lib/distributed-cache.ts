@@ -11,11 +11,18 @@ export interface CacheEntry<T> {
   createdAt: number;
 }
 
+export interface RedisClient {
+  get(key: string): Promise<string | null>;
+  setex(key: string, seconds: number, value: string): Promise<void>;
+  del(key: string): Promise<number>;
+  flushdb(): Promise<void>;
+}
+
 export class DistributedCache {
-  private redisClient: any;
+  private redisClient: RedisClient | null;
   private ttlMs: number;
 
-  constructor(redisClient: any, ttlMs: number = 3600000) {
+  constructor(redisClient: RedisClient | null, ttlMs: number = 3600000) {
     this.redisClient = redisClient;
     this.ttlMs = ttlMs;
   }
@@ -88,6 +95,6 @@ export class DistributedCache {
   }
 }
 
-export function createDistributedCache(redisClient: any): DistributedCache {
+export function createDistributedCache(redisClient: RedisClient | null): DistributedCache {
   return new DistributedCache(redisClient);
 }
