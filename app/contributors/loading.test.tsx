@@ -34,7 +34,8 @@ describe('Contributors Loading', () => {
     expect(wrapper).toHaveClass('min-h-screen');
     expect(wrapper).toHaveClass('items-center');
     expect(wrapper).toHaveClass('justify-center');
-    expect(wrapper).toHaveClass('bg-[#050505]');
+    expect(wrapper).toHaveClass('bg-white');
+    expect(wrapper).toHaveClass('dark:bg-[#050505]');
   });
 
   it('renders loader container with accessibility attributes', () => {

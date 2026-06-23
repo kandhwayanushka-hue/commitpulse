@@ -30,8 +30,10 @@ describe('Contributors loading theme contrast', () => {
       'min-h-screen',
       'items-center',
       'justify-center',
-      'bg-[#050505]',
-      'text-white',
+      'bg-white',
+      'dark:bg-[#050505]',
+      'text-black',
+      'dark:text-white',
     ]);
   });
 
@@ -57,7 +59,8 @@ describe('Contributors loading theme contrast', () => {
       'animate-spin',
       'rounded-full',
       'border-2',
-      'border-white/10',
+      'border-black/10',
+      'dark:border-white/10',
       'border-t-cyan-400',
     ]);
   });

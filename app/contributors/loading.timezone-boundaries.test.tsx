@@ -86,6 +86,7 @@ describe('ContributorsLoading - Timezone Boundaries & Calendar Alignment', () =>
     const layoutWrapper = container.firstChild as HTMLElement;
     expect(layoutWrapper).toHaveClass('flex');
     expect(layoutWrapper).toHaveClass('min-h-screen');
-    expect(layoutWrapper).toHaveClass('bg-[#050505]');
+    expect(layoutWrapper).toHaveClass('bg-white');
+    expect(layoutWrapper).toHaveClass('dark:bg-[#050505]');
   });
 });

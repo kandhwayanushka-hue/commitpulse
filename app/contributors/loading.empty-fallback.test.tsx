@@ -44,8 +44,10 @@ describe('Contributors loading empty fallback', () => {
       'min-h-screen',
       'items-center',
       'justify-center',
-      'bg-[#050505]',
-      'text-white',
+      'bg-white',
+      'dark:bg-[#050505]',
+      'text-black',
+      'dark:text-white',
     ]);
 
     hasClasses(status, ['flex', 'flex-col', 'items-center', 'gap-6']);
@@ -67,7 +69,8 @@ describe('Contributors loading empty fallback', () => {
       'animate-spin',
       'rounded-full',
       'border-2',
-      'border-white/10',
+      'border-black/10',
+      'dark:border-white/10',
       'border-t-cyan-400',
     ]);
 

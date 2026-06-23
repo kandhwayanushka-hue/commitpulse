@@ -149,7 +149,8 @@ describe('Contributors Loading — structure & accessibility', () => {
     const { container } = render(<Loading />);
     const root = container.firstChild as HTMLElement;
     expect(root).toHaveClass('min-h-screen');
-    expect(root).toHaveClass('bg-[#050505]');
+    expect(root).toHaveClass('bg-white');
+    expect(root).toHaveClass('dark:bg-[#050505]');
     expect(root).toHaveClass('flex');
     expect(root).toHaveClass('items-center');
     expect(root).toHaveClass('justify-center');

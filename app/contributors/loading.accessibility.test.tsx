@@ -46,8 +46,10 @@ describe('Contributors loading accessibility', () => {
       'min-h-screen',
       'items-center',
       'justify-center',
-      'bg-[#050505]',
-      'text-white',
+      'bg-white',
+      'dark:bg-[#050505]',
+      'text-black',
+      'dark:text-white',
     ]);
 
     expect(status.classList.contains('sr-only')).toBe(false);
