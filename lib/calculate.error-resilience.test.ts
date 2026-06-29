@@ -13,11 +13,13 @@ describe('calculate-error-resilience', () => {
       throw new Error('Intl failed');
     });
 
-    expect(() => convertLocalToUtc(2026, 6, 12, 10, 0, 0, 'Asia/Kolkata')).not.toThrow();
+    try {
+      const result = convertLocalToUtc(2026, 6, 12, 10, 0, 0, 'Asia/Kolkata');
 
-    expect(convertLocalToUtc(2026, 6, 12, 10, 0, 0, 'Asia/Kolkata')).toBe('2026-06-12T10:00:00Z');
-
-    spy.mockRestore();
+      expect(result).toBe('2026-06-12T10:00:00Z');
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it('should fallback safely when Intl formatter crashes inside getLocalTodayStr', () => {
@@ -25,9 +27,13 @@ describe('calculate-error-resilience', () => {
       throw new Error('formatter failed');
     });
 
-    expect(() => getLocalTodayStr(new Date('2026-06-12T00:00:00Z'), 'Asia/Kolkata')).not.toThrow();
+    try {
+      const result = getLocalTodayStr(new Date('2026-06-12T00:00:00Z'), 'Asia/Kolkata');
 
-    spy.mockRestore();
+      expect(result).toBe('2026-06-12');
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it('should not throw for malformed calendar in calculateStreak', () => {
@@ -36,7 +42,14 @@ describe('calculate-error-resilience', () => {
       weeks: [undefined, { contributionDays: [null] }],
     } as unknown as Parameters<typeof calculateStreak>[0];
 
-    expect(() => calculateStreak(calendar, 'UTC', new Date())).not.toThrow();
+    const now = new Date('2026-06-12T12:00:00Z');
+
+    const result = calculateStreak(calendar, 'UTC', now);
+
+    expect(result.totalContributions).toBe(10);
+    expect(result.currentStreak).toBe(0);
+    expect(result.longestStreak).toBe(0);
+    expect(result.todayDate).toBe('2026-06-12');
   });
 
   it('should not throw for malformed calendar in calculateMonthlyStats', () => {
@@ -45,19 +58,27 @@ describe('calculate-error-resilience', () => {
       weeks: [null],
     } as unknown as Parameters<typeof calculateMonthlyStats>[0];
 
-    expect(() => calculateMonthlyStats(calendar, 'Invalid/Timezone', new Date())).not.toThrow();
+    const now = new Date('2026-06-12T12:00:00Z');
+
+    const result = calculateMonthlyStats(calendar, 'Invalid/Timezone', now);
+
+    expect(result.currentMonthTotal).toBe(0);
+    expect(result.previousMonthTotal).toBe(0);
+    expect(result.deltaAbsolute).toBe(0);
+    expect(result.deltaPercentage).toBeNull();
   });
 
   it('should safely ignore invalid calendar entries in aggregateCalendars', () => {
-    expect(() =>
-      aggregateCalendars([
-        null as unknown as Parameters<typeof aggregateCalendars>[0][number],
-        undefined as unknown as Parameters<typeof aggregateCalendars>[0][number],
-        {
-          totalContributions: 5,
-          weeks: [],
-        },
-      ])
-    ).not.toThrow();
+    const result = aggregateCalendars([
+      {
+        totalContributions: 5,
+        weeks: [],
+      },
+      null as unknown as Parameters<typeof aggregateCalendars>[0][number],
+      undefined as unknown as Parameters<typeof aggregateCalendars>[0][number],
+    ]);
+
+    expect(result.totalContributions).toBe(5);
+    expect(result.weeks).toEqual([]);
   });
 });
