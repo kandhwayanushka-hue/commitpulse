@@ -644,28 +644,28 @@ describe('GET /api/streak', () => {
       const response = await GET(makeRequest({ user: 'octocat', year: 'abcd' }));
       const body = await response.text();
       expect(response.status).toBe(400);
-      expect(body).toContain('GitHub was founded in 2008');
+      expect(body).toContain('4-digit');
     });
 
     it('returns 400 for malformed numeric year', async () => {
       const response = await GET(makeRequest({ user: 'octocat', year: '100000' }));
       const body = await response.text();
       expect(response.status).toBe(400);
-      expect(body).toContain('GitHub was founded in 2008');
+      expect(body).toContain('4-digit');
     });
 
     it('returns 400 for years before GitHub existed', async () => {
       const response = await GET(makeRequest({ user: 'octocat', year: '1999' }));
       const body = await response.text();
       expect(response.status).toBe(400);
-      expect(body).toContain('GitHub was founded in 2008');
+      expect(body).toContain('before GitHub was founded');
     });
 
     it('returns 400 for the year=2007(before GitHub was founded)', async () => {
       const response = await GET(makeRequest({ user: 'octocat', year: '2007' }));
       const body = await response.text();
       expect(response.status).toBe(400);
-      expect(body).toContain('GitHub was founded in 2008');
+      expect(body).toContain('before GitHub was founded');
     });
 
     it('returns 400 for future years', async () => {
@@ -673,7 +673,7 @@ describe('GET /api/streak', () => {
       const response = await GET(makeRequest({ user: 'octocat', year: futureYear }));
       const body = await response.text();
       expect(response.status).toBe(400);
-      expect(body).toContain('GitHub was founded in 2008');
+      expect(body).toContain('future');
     });
 
     it('accepts year=2008 (the earliest valid year)', async () => {
