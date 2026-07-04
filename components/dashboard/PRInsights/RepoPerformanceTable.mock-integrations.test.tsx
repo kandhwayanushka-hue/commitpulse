@@ -42,20 +42,27 @@ beforeEach(() => {
 });
 
 const baseData: PRInsightData = {
+  totalPRs: 20,
+  openPRs: 2,
+  mergedPRs: 17,
+  closedPRs: 1,
+  mergeRate: 85,
+  avgReviewTime: 3.2,
+  avgTimeToFirstReview: 2.0,
+  avgCycleTime: 3.2,
+  weeklyActivity: [],
+  monthlyActivity: [],
+  reviewsGiven: 11,
+  reviewsReceived: 11,
+  avgReviewResponseTime: 3.2,
+  fastestReview: 1.0,
+  slowestReview: 5.0,
   repoPerformance: [
-    { name: 'org/repo-alpha', totalPRs: 8, mergeRate: 75, reviewCount: 4 },
-    { name: 'org/repo-beta', totalPRs: 12, mergeRate: 91.7, reviewCount: 7 },
+    { name: 'org/repo-alpha', totalPRs: 8, mergeRate: 75, reviewCount: 4, avgReviewTime: 1.5 },
+    { name: 'org/repo-beta', totalPRs: 12, mergeRate: 91.7, reviewCount: 7, avgReviewTime: 2.1 },
   ],
-  highlights: { fastestMerged: null, mostDiscussed: null, largest: null },
-  summary: {
-    totalPRs: 20,
-    mergedPRs: 17,
-    openPRs: 2,
-    closedPRs: 1,
-    avgMergeTimeHours: 3.2,
-    mergeRate: 85,
-  },
-  timeline: [],
+  highlights: { fastestMerged: undefined, mostDiscussed: undefined, largest: undefined },
+  prs: [],
 };
 
 describe('RepoPerformanceTable - mock integrations', () => {
