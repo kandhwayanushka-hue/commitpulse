@@ -168,7 +168,9 @@ describe('SectionCard Error Resilience', () => {
     );
 
     expect(screen.getByTestId('error-fallback')).toBeInTheDocument();
-    expect(screen.getByText(/FATAL_DB_DISCONNECT: Database connection timed out/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/FATAL_DB_DISCONNECT: Database connection timed out/i)
+    ).toBeInTheDocument();
 
     consoleErrorSpy.mockRestore();
   });
